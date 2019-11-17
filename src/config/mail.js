@@ -3,8 +3,8 @@ export default {
   port: '2525',
   secure: false,
   auth: {
-    user: 'ceb730c93afc06',
-    pass: '934b81d89380b8',
+    user: '1add976905c743',
+    pass: '5c15d41dad0576',
   },
   default: {
     from: 'Equipe nomeDaBarbearia <noreply@app.com>',
