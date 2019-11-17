@@ -5,8 +5,6 @@ import Appointment from '../models/Appointment';
 import User from '../models/User';
 import File from '../models/File';
 import Notification from '../schemas/Notification';
-// import CancellationMail from '../jobs/CancellationMail';
-// import Queue from '../../lib/Queue';
 
 class AppointmentController {
   async index(req, res) {
@@ -15,7 +13,7 @@ class AppointmentController {
     const appointments = await Appointment.findAll({
       where: { user_id: req.userId, canceled_at: null },
       order: ['date'],
-      attributes: ['id', 'date', 'past', 'cancelable'],
+      attributes: ['id', 'date'],
       limit: 20,
       offset: (page - 1) * 20,
       include: [
@@ -24,12 +22,17 @@ class AppointmentController {
           as: 'provider',
           attributes: ['id', 'name'],
           include: [
-            { model: File, as: 'avatar', attributes: ['id', 'path', 'url'] },
+            {
+              model: File,
+              as: 'avatar',
+              attributes: ['id', 'path', 'url'],
+            },
           ],
         },
       ],
     });
-    res.json(appointments);
+
+    return res.json(appointments);
   }
 
   async store(req, res) {
@@ -102,20 +105,7 @@ class AppointmentController {
   }
 
   async delete(req, res) {
-    const appointment = await Appointment.findByPk(req.params.id, {
-      include: [
-        {
-          model: User,
-          as: 'provider',
-          attributes: ['name', 'email'],
-        },
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'name'],
-        },
-      ],
-    });
+    const appointment = await Appointment.findByPk(req.params.id);
 
     if (appointment.user_id !== req.userId) {
       return res.status(401).json({
@@ -123,21 +113,19 @@ class AppointmentController {
       });
     }
 
-    // const dateWithSub = subHours(appointment.date, 2);
+    // Removendo 2 horas do horário do agendamento
+    const dateWithSub = subHours(appointment.date, 2);
 
-    // if (isBefore(dateWithSub, new Date())) {
-    //   return res.status(401).json({
-    //     error: 'Você só pode cancelar agendamentos com 2 horas de antecedência',
-    //   });
-    // }
+    if (isBefore(dateWithSub, new Date())) {
+      return res.status(401).json({
+        error:
+          'Você só pode cancelar um agendamento com 2 horas de antecedência',
+      });
+    }
 
-    // appointment.canceled_at = new Date();
+    appointment.canceled_at = new Date();
 
-    // await appointment.save();
-
-    // await Queue.add(CancellationMail.key, {
-    //   appointment,
-    // });
+    await appointment.save();
 
     return res.json(appointment);
   }
